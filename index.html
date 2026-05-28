@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bid Tracker</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input, select, button { margin: 5px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    td, th { border: 1px solid #ddd; padding: 8px; }
+    .low { background-color: #d4edda; }
+  </style>
+</head>
+
+<body>
+  <h1>Preconstruction Bid Leveling Tool</h1>
+
+  <input id="project" placeholder="Project">
+  <input id="trade" placeholder="Trade">
+  <input id="company" placeholder="Company">
+  <input id="amount" type="number" placeholder="Amount">
+  <input id="notes" placeholder="Notes">
+
+  <select id="status">
+    <option>Bidding</option>
+    <option>Submitted</option>
+    <option>Awarded</option>
+    <option>Lost</option>
+  </select>
+
+  <button onclick="addBid()">Add Bid</button>
+
+  <br><br>
+
+  <select id="projectFilter" onchange="render()">
+    <option value="">All Projects</option>
+  </select>
+
+  <div id="output"></div>
+
+  <script>
+    let bids = [];
+
+    function addBid() {
+      const bid = {
+        project: document.getElementById("project").value,
+        trade: document.getElementById("trade").value,
+        company: document.getElementById("company").value,
+        amount: Number(document.getElementById("amount").value),
+        notes: document.getElementById("notes").value,
+        status: document.getElementById("status").value
+      };
+
+      bids.push(bid);
+      updateProjects();
+      render();
+    }
+
+    function updateProjects() {
+      const select = document.getElementById("projectFilter");
+      const projects = [...new Set(bids.map(b => b.project))];
+
+      select.innerHTML = '<option value="">All Projects</option>';
+      projects.forEach(p => {
+        select.innerHTML += `<option value="${p}">${p}</option>`;
+      });
+    }
+
+    function render() {
+      const filter = document.getElementById("projectFilter").value;
+      let filtered = filter ? bids.filter(b => b.project === filter) : bids;
+
+      let grouped = {};
+      filtered.forEach(b => {
+        if (!grouped[b.trade]) grouped[b.trade] = [];
+        grouped[b.trade].push(b);
+      });
+
+      let html = "";
+
+      for (let trade in grouped) {
+        grouped[trade].sort((a,b) => a.amount - b.amount);
+        let low = grouped[trade][0].amount;
+
+        html += `<h2>${trade}</h2><table>
+        <tr><th>Company</th><th>Amount</th><th>Delta</th><th>Status</th><th>Notes</th></tr>`;
+
+        grouped[trade].forEach((b,i) => {
+          let delta = b.amount - low;
+          html += `<tr class="${i===0 ? 'low' : ''}">
+            <td>${b.company}</td>
+            <td>$${b.amount.toLocaleString()}</td>
+            <td>${delta===0 ? 'Low Bid' : '$'+delta.toLocaleString()}</td>
+            <td>${b.status}</td>
+            <td>${b.notes}</td>
+          </tr>`;
+        });
+
+        html += `</table>`;
+      }
+
+      document.getElementById("output").innerHTML = html;
+    }
+  </script>
+</body>
+</html>
